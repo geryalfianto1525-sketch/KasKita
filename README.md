@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KasKita - Aplikasi Pengelolaan Kas Kelas
 
-## Getting Started
+Proyek Startup PPLG (Web StartUp Bu Rini). Aplikasi ini dibuat untuk mencatat pemasukan, pengeluaran, dan status pembayaran kas kelas secara digital.
 
-First, run the development server:
+## Teknologi yang Digunakan
+- **Framework**: Next.js 14 (App Router)
+- **Database & Backend**: Supabase
+- **Styling**: Tailwind CSS & shadcn/ui
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Cara Menjalankan Aplikasi di Lokal
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Clone repository ini:
+   ```bash
+   git clone https://github.com/geryalfianto1525-sketch/KasKita.git
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Install semua kebutuhan (library):
+   ```bash
+   npm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Buat file .env.local di folder utama, lalu isi dengan URL dan Key Supabase:
+   ```bash
+    NEXT_PUBLIC_SUPABASE_URL=url_supabase_kamu
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=anon_key_kamu
+   ```
 
-## Learn More
+4. Jalankan server development:
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+5. Buka `http://localhost:3000` di browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Kontributor
+- 

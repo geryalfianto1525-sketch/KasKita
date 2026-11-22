@@ -1,69 +1,105 @@
-import Image from "next/image";
+"use client"; 
+
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+// Inisialisasi Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Home() {
+  const [transaksi, setTransaksi] = useState<any[]>([]);
+  const [keterangan, setKeterangan] = useState("");
+  const [jumlah, setJumlah] = useState("");
+
+  // Fungsi ambil data dari Supabase
+  const fetchData = async () => {
+    const { data } = await supabase.from("transaksi").select("*").order("id", { ascending: false });
+    if (data) setTransaksi(data);
+  };
+
+  // Jalankan saat halaman pertama kali dibuka
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Fungsi tambah transaksi
+    // Fungsi tambah transaksi
+  const handleTambah = async () => {
+    if (!keterangan || !jumlah) return alert("Isi semua data!");
+    
+    // Proses insert
+    const { data, error } = await supabase.from("transaksi").insert([
+      { keterangan: keterangan, jumlah: parseInt(jumlah), tipe: "masuk" }
+    ]);
+
+    // JIKA ADA ERROR, TAMPILKAN DI LAYAR
+    if (error) {
+      console.error("Detail Error:", error);
+      alert("Gagal menyimpan: " + error.message);
+    } else {
+      // JIKA BERHASIL, BARU KOSONGKAN FORM
+      setKeterangan("");
+      setJumlah("");
+      fetchData();
+    }
+  };
+
+  // Hitung total saldo
+  const totalSaldo = transaksi.reduce((acc, curr) => {
+    return curr.tipe === "masuk" ? acc + curr.jumlah : acc - curr.jumlah;
+  }, 0);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen bg-slate-50 p-8">
+      <h1 className="text-3xl font-bold text-blue-600 mb-8">KasKita </h1>
+
+      {/* Card Dashboard (Menggunakan shadcn/ui) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Saldo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">Rp {totalSaldo.toLocaleString("id-ID")}</p>
+          </CardContent>
+        </Card>
+        {/* Bisa tambah Card Total Masuk & Keluar di sini */}
+      </div>
+
+      {/* Form Tambah Transaksi */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Tambah Transaksi</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-2">
+          <Input placeholder="Keterangan..." value={keterangan} onChange={(e) => setKeterangan(e.target.value)} />
+          <Input type="number" placeholder="Jumlah..." value={jumlah} onChange={(e) => setJumlah(e.target.value)} />
+          <Button onClick={handleTambah}>Simpan</Button>
+        </CardContent>
+      </Card>
+
+      {/* List Transaksi */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Riwayat Transaksi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {transaksi.map((t) => (
+            <div key={t.id} className="flex justify-between border-b py-2">
+              <span>{t.keterangan}</span>
+              <span className={t.tipe === "masuk" ? "text-green-600" : "text-red-600"}>
+                Rp {t.jumlah.toLocaleString("id-ID")}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </main>
   );
 }
+

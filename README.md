@@ -1,2 +1,2 @@
 # KasKita
-Wes StarUp Bu Rini 
+Web StarUp Bu Rini 

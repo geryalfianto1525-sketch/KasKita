@@ -1,129 +1,97 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Sparkles, Wallet, Users, ShieldCheck, ArrowRight } from "lucide-react";
 
-// 1. PERBAIKAN: Definisikan Tipe Data (Menggantikan 'any')
-type Transaksi = {
-  id: number;
-  keterangan: string;
-  jumlah: number;
-  tipe: string;
-  created_at?: string;
-};
-
-type Siswa = {
-  id: number;
-  nama: string;
-  status: string;
-};
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export default function Home() {
-  // 2. PERBAIKAN: Gunakan Tipe Data yang sudah dibuat di atas
-  const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
-  const [siswa, setSiswa] = useState<Siswa[]>([]);
-  const [keterangan, setKeterangan] = useState("");
-  const [jumlah, setJumlah] = useState("");
-
-  const fetchData = async () => {
-    const { data: dataTransaksi } = await supabase.from("transaksi").select("*").order("id", { ascending: false });
-    const { data: dataSiswa } = await supabase.from("siswa").select("*").order("id");
-
-    if (dataTransaksi) setTransaksi(dataTransaksi);
-    if (dataSiswa) setSiswa(dataSiswa);
-  };
-
-  useEffect(() => {
-    // 3. PERBAIKAN: Abaikan peringatan ESLint (karena ini cara standar ambil data di Next.js)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, []);
-
-  const handleTambah = async () => {
-    if (!keterangan || !jumlah) return alert("Isi semua data!");
-
-    // 4. PERBAIKAN: Hapus 'data' yang tidak terpakai, kita hanya butuh 'error'
-    const { error } = await supabase.from("transaksi").insert([
-      { keterangan: keterangan, jumlah: parseInt(jumlah), tipe: "masuk" }
-    ]);
-
-    if (error) {
-      alert("Gagal menyimpan: " + error.message);
-    } else {
-      setKeterangan("");
-      setJumlah("");
-      fetchData();
-    }
-  };
-
-  const handleBayar = async (id: number, nama: string) => {
-    const { error } = await supabase.from("siswa").update({ status: "Lunas" }).eq("id", id);
-    if (!error) {
-      await supabase.from("transaksi").insert([{ keterangan: `Kas dari ${nama}`, jumlah: 5000, tipe: "masuk" }]);
-      fetchData();
-    }
-  };
-
-  const totalSaldo = transaksi.reduce((acc, curr) => {
-    return curr.tipe === "masuk" ? acc + curr.jumlah : acc - curr.jumlah;
-  }, 0);
-
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-slate-50 p-8">
-      <h1 className="text-3xl font-bold text-blue-600 mb-8">KasKita (Beta)</h1>
+    <div className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900 transition-colors duration-500">
+      
+      {/* ORNAMEN CAHAYA */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/30 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-400/30 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <Card>
-          <CardHeader><CardTitle>Total Saldo</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold text-blue-600">Rp {totalSaldo.toLocaleString("id-ID")}</p></CardContent>
-        </Card>
-      </div>
+      {/* NAVBAR LANDING PAGE */}
+      <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3">
+          <Image src="/logo.png" alt="Logo" width={40} height={40} className="object-contain" />
+          <span className="font-black text-2xl text-slate-800 dark:text-white tracking-tight">KasKita</span>
+        </div>
+        <Link href="/login">
+          <Button className="bg-linear-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-full px-6 font-bold shadow-lg shadow-blue-500/30">
+            Masuk Aplikasi
+          </Button>
+        </Link>
+      </nav>
 
-      <Card className="mb-8">
-        <CardHeader><CardTitle>Tambah Pemasukan Kas</CardTitle></CardHeader>
-        <CardContent className="flex gap-2">
-          <Input placeholder="Keterangan..." value={keterangan} onChange={(e) => setKeterangan(e.target.value)} />
-          <Input type="number" placeholder="Jumlah..." value={jumlah} onChange={(e) => setJumlah(e.target.value)} />
-          <Button onClick={handleTambah}>Simpan</Button>
-        </CardContent>
-      </Card>
+      {/* HERO SECTION */}
+      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32 flex flex-col items-center text-center">
+        
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-md border border-white/50 dark:border-white/10 mb-8 text-sm font-bold text-blue-600 dark:text-blue-400 shadow-sm">
+            <Sparkles className="w-4 h-4" /> Aplikasi Kas Kelas Masa Kini
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-800 dark:text-white mb-6 leading-tight">
+            Kelola uang kas <br />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-cyan-500 to-purple-600 dark:from-blue-400 dark:via-cyan-300 dark:to-purple-400">
+              tanpa pusing.
+            </span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-10 font-medium">
+            Lupakan buku catatan manual. KasKita membantu bendahara mencatat pemasukan, pengeluaran, dan status pembayaran siswa secara transparan dan otomatis.
+          </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader><CardTitle>Riwayat Transaksi</CardTitle></CardHeader>
-          <CardContent>
-            {transaksi.length === 0 ? <p className="text-gray-500">Belum ada transaksi.</p> : transaksi.map((t) => (
-              <div key={t.id} className="flex justify-between border-b py-2">
-                <span>{t.keterangan}</span>
-                <span className="text-green-600 font-bold">+ Rp {t.jumlah.toLocaleString("id-ID")}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/login">
+              <Button className="w-full sm:w-auto bg-linear-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-2xl px-8 py-7 text-lg font-bold shadow-xl shadow-blue-500/30 transition-all hover:scale-105 flex items-center gap-2">
+                Mulai Sekarang <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
 
-        <Card>
-          <CardHeader><CardTitle>Status Siswa</CardTitle></CardHeader>
-          <CardContent>
-            {siswa.map((s) => (
-              <div key={s.id} className="flex justify-between items-center border-b py-2">
-                <span>{s.nama}</span>
-                {s.status === "Lunas" ? (
-                  <span className="text-green-600 font-bold text-sm">LUNAS</span>
-                ) : (
-                  <Button size="sm" onClick={() => handleBayar(s.id, s.nama)}>Bayar 5.000</Button>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+        {/* FITUR CARDS */}
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-32 w-full"
+        >
+          <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/50 dark:border-white/10 p-8 rounded-3xl text-left shadow-xl">
+            <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/50 rounded-2xl flex items-center justify-center mb-6">
+              <Wallet className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Pencatatan Otomatis</h3>
+            <p className="text-slate-600 dark:text-slate-400">Catat uang masuk dan keluar dengan mudah. Saldo dihitung secara otomatis dan akurat.</p>
+          </div>
+
+          <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/50 dark:border-white/10 p-8 rounded-3xl text-left shadow-xl">
+            <div className="w-14 h-14 bg-green-100 dark:bg-green-900/50 rounded-2xl flex items-center justify-center mb-6">
+              <Users className="w-7 h-7 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Status Siswa Transparan</h3>
+            <p className="text-slate-600 dark:text-slate-400">Pantau siapa saja yang sudah lunas dan belum bayar di setiap periode kas mingguan.</p>
+          </div>
+
+          <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/50 dark:border-white/10 p-8 rounded-3xl text-left shadow-xl">
+            <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/50 rounded-2xl flex items-center justify-center mb-6">
+              <ShieldCheck className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Laporan Siap Ekspor</h3>
+            <p className="text-slate-600 dark:text-slate-400">Unduh laporan keuangan dalam format Excel atau PDF untuk diserahkan ke wali kelas.</p>
+          </div>
+        </motion.div>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="relative z-10 text-center py-8 text-slate-500 dark:text-slate-400 font-medium text-sm border-t border-white/20 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
+        &copy; 2026 KasKita. Dibuat dengan ❤️ oleh Tim PPLG.
+      </footer>
+    </div>
   );
 }

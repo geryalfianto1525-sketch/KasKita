@@ -30,7 +30,7 @@ export default function Home() {
   const [keterangan, setKeterangan] = useState("");
   const [jumlah, setJumlah] = useState("");
   const [tipe, setTipe] = useState("masuk");
-  const [nominalKas, setNominalKas] = useState("5000");
+  const [nominalKas, setNominalKas] = useState("3000");
   const [searchSiswa, setSearchSiswa] = useState("");
   const [periodeAktif, setPeriodeAktif] = useState("Minggu 1");
   const listPeriode = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Bulanan"];
@@ -46,13 +46,15 @@ export default function Home() {
     checkUser();
   }, [router]);
 
-  const fetchData = async () => {
-    const { data: dataTransaksi } = await supabase.from("transaksi").select("*").order("id", { ascending: false });
-    const { data: dataSiswa } = await supabase.from("siswa").select("*").order("id");
-    if (dataTransaksi) setTransaksi(dataTransaksi);
-    if (dataSiswa) setSiswa(dataSiswa);
-  };
-
+const fetchData = async () => {
+  const { data: dataTransaksi } = await supabase.from("transaksi").select("*").order("id", { ascending: false });
+  const { data: dataSiswa } = await supabase.from("siswa").select("*").order("id");
+  const { data: dataPengaturan } = await supabase.from("pengaturan").select("*").eq("id", 1).single();
+  
+  if (dataTransaksi) setTransaksi(dataTransaksi);
+  if (dataSiswa) setSiswa(dataSiswa);
+  if (dataPengaturan) setProfilKelas(dataPengaturan);
+};
   useEffect(() => {
     const checkUserAndFetch = async () => {
       // 1. Cek Login

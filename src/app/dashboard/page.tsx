@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Wallet, Plus, Sparkles, Trash2, Search, Users, CheckCircle2, XCircle, FileSpreadsheet, FileText, CalendarDays, Eye } from "lucide-react";
+import { Wallet, Plus, Sparkles, Trash2, Search, Users, CheckCircle2, XCircle, FileSpreadsheet, FileText, CalendarDays, Eye, Settings, MessageCircle } from "lucide-react";
 import ChartKas from "@/components/ChartKas";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -32,14 +32,11 @@ export default function Home() {
   const [tipe, setTipe] = useState("masuk");
   const [nominalKas, setNominalKas] = useState("5000");
   const [searchSiswa, setSearchSiswa] = useState("");
-  
   const [periodeAktif, setPeriodeAktif] = useState("Minggu 1");
   const listPeriode = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Bulanan"];
-  
-  // State untuk Modal Detail Siswa
   const [selectedSiswa, setSelectedSiswa] = useState<Siswa | null>(null);
-
   const router = useRouter();
+  const [profilKelas, setProfilKelas] = useState({ nama_kelas: "Kelas", nama_bendahara: "Bendahara" });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -57,9 +54,33 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, []);
+    const checkUserAndFetch = async () => {
+      // 1. Cek Login
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+        return;
+      }
+
+      // 2. Satpam Cek Siswa
+      const { data: dataSiswa } = await supabase
+        .from("siswa")
+        .select("id")
+        .eq("email", session.user.email)
+        .maybeSingle();
+
+      // Kalau dia siswa, tendang! Dan hentikan proses (jangan ambil data)
+      if (dataSiswa) {
+        router.push("/siswa");
+        return; 
+      }
+
+      // 3. Kalau lolos satpam (berarti Admin), baru ambil data
+      await fetchData();
+    };
+    
+    checkUserAndFetch();
+  }, [router]);
 
   const handleTambah = async () => {
     if (!keterangan || !jumlah) return toast.error("Isi semua data!");
@@ -96,6 +117,34 @@ export default function Home() {
       fetchData();
       toast.success(`${nama} berhasil dibayar`);
     }
+  };
+
+    const handleTagihWA = () => {
+    // 1. Cari siswa yang belum bayar di periode ini
+    const belumBayar = siswa.filter(s => !transaksiPeriodeIni.some(t => t.siswa_id === s.id));
+
+    if (belumBayar.length === 0) {
+      return toast.success("Semua siswa sudah lunas! Tidak ada yang perlu ditagih.");
+    }
+
+    // 2. Susun teks pesan WhatsApp
+    let pesan = `*TAGIHAN KAS ${periodeAktif.toUpperCase()}*\n`;
+    pesan += `Kelas: ${profilKelas.nama_kelas}\n\n`;
+    pesan += `Halo teman-teman, bagi yang belum membayar kas ${periodeAktif}, mohon segera diselesaikan ya. Terima kasih! 🙏\n\n`;
+    pesan += `*Daftar yang belum bayar:*\n`;
+    
+    belumBayar.forEach((s, index) => {
+      pesan += `${index + 1}. ${s.nama}\n`;
+    });
+    
+    pesan += `\nTotal: ${belumBayar.length} orang.`;
+
+    // 3. Copy ke Clipboard
+    navigator.clipboard.writeText(pesan).then(() => {
+      toast.success("Teks tagihan berhasil dicopy! Silakan paste di grup WhatsApp.");
+    }).catch(() => {
+      toast.error("Gagal menyalin teks.");
+    });
   };
 
   const exportExcel = () => {
@@ -162,6 +211,16 @@ export default function Home() {
                 <Users className="w-4 h-4" /> Kelola Siswa
               </Button>
             </Link>
+
+            <Link href="/dashboard/pengaturan">
+              <Button className="bg-slate-600 hover:bg-slate-700 text-white rounded-xl shadow-lg shadow-slate-500/30 flex gap-2">
+                <Settings className="w-4 h-4" /> Pengaturan
+              </Button>
+            </Link>
+
+            <Button onClick={handleTagihWA} className="bg-[#25D366] hover:bg-[#1ebe57] text-white rounded-xl shadow-lg shadow-green-500/30 flex gap-2">
+              <MessageCircle className="w-4 h-4" /> Tagih WA
+            </Button>
             
             <Button onClick={exportExcel} className="bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 flex gap-2">
               <FileSpreadsheet className="w-4 h-4" /> Excel

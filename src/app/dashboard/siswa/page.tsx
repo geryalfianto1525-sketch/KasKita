@@ -37,9 +37,35 @@ export default function KelolaSiswa() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchSiswa();
-  }, []);
+    const checkUserAndFetch = async () => {
+      // 1. Cek Login
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+        return;
+      }
+
+      // 2. Satpam Cek Siswa
+      const { data: dataSiswa } = await supabase
+        .from("siswa")
+        .select("id")
+        .eq("email", session.user.email)
+        .maybeSingle();
+
+      // Kalau dia siswa, tendang ke /siswa
+      if (dataSiswa) {
+        router.push("/siswa");
+        return; 
+      }
+
+      // 3. Kalau lolos (Admin), ambil data siswa
+      const { data } = await supabase.from("siswa").select("*").order("nama");
+      if (data) setSiswa(data);
+    };
+    
+    checkUserAndFetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   const handleTambah = async () => {
     if (!namaBaru) return toast.error("Nama siswa tidak boleh kosong!");

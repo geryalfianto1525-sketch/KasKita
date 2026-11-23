@@ -36,10 +36,32 @@ export default function LoginPage() {
       const supabase = getSupabase(); 
 
     if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setMessage("Login Gagal: " + error.message);
-      else { router.push("/dashboard"); router.refresh(); }
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        setMessage("Login Gagal: " + error.message);
+      } else {
+        // Tambahkan console.log untuk ngecek di browser (F12)
+        console.log("Email yang login:", data.user?.email);
+
+        const { data: dataSiswa, error: errorSiswa } = await supabase
+          .from("siswa")
+          .select("id")
+          .eq("email", data.user?.email)
+          .maybeSingle(); 
+
+        // Cek di console browser (F12) apa isi dataSiswa
+        console.log("Data Siswa Ditemukan:", dataSiswa);
+        
+        if (dataSiswa) {
+          router.push("/siswa");
+        } else {
+          router.push("/dashboard");
+        }
+        router.refresh();
+      }
     } else {
+
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) setMessage("Daftar Gagal: " + error.message);
       else { setMessage("Pendaftaran berhasil! Silakan klik Masuk."); setIsLogin(true); }

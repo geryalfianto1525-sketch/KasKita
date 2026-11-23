@@ -38,7 +38,7 @@ export default function LandingPage() {
           <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-800 dark:text-white mb-6 leading-tight">
             Kelola uang kas <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-cyan-500 to-purple-600 dark:from-blue-400 dark:via-cyan-300 dark:to-purple-400">
-              tanpa pusing.
+              tanpa pusing
             </span>
           </h1>
           

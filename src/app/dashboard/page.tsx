@@ -138,7 +138,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Sparkles className="w-8 h-8 text-blue-500 animate-pulse" />
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-cyan-500 to-purple-600 dark:from-blue-400 dark:via-cyan-300 dark:to-purple-400">
-              Dashboard Kas.
+              Dashboard Kas
             </h1>
           </div>
           

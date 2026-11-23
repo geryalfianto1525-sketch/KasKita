@@ -90,7 +90,7 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer className="relative z-10 text-center py-8 text-slate-500 dark:text-slate-400 font-medium text-sm border-t border-white/20 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-md">
-        &copy; 2026 KasKita. Dibuat dengan ❤️ oleh Tim PPLG.
+        &copy; 2026 KasKita. Dibuat oleh Tim PPLG XB-Class.
       </footer>
     </div>
   );

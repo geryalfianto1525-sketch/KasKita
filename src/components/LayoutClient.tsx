@@ -2,15 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { createClient } from "@supabase/supabase-js";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { Moon, Sun, LogOut } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!url || !key) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  }
+  
+  return createClient(url, key);
+}
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +31,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   }, []);
 
   const handleLogout = async () => {
+    const supabase = getSupabase(); 
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();

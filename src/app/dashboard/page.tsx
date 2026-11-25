@@ -24,6 +24,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const glassCardClass = "border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden relative before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/50 dark:before:border-white/10 before:pointer-events-none before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]";
+
 export default function Home() {
   const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
   const [siswa, setSiswa] = useState<Siswa[]>([]);
@@ -38,59 +40,48 @@ export default function Home() {
   const router = useRouter();
   const [profilKelas, setProfilKelas] = useState({ nama_kelas: "Kelas", nama_bendahara: "Bendahara" });
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) router.push("/login");
-    };
-    checkUser();
-  }, [router]);
+  const fetchData = async () => {
+    const { data: dataTransaksi } = await supabase.from("transaksi").select("*").order("id", { ascending: false });
+    const { data: dataSiswa } = await supabase.from("siswa").select("*").order("id");
+    const { data: dataPengaturan } = await supabase.from("pengaturan").select("*").eq("id", 1).single();
 
-const fetchData = async () => {
-  const { data: dataTransaksi } = await supabase.from("transaksi").select("*").order("id", { ascending: false });
-  const { data: dataSiswa } = await supabase.from("siswa").select("*").order("id");
-  const { data: dataPengaturan } = await supabase.from("pengaturan").select("*").eq("id", 1).single();
-  
-  if (dataTransaksi) setTransaksi(dataTransaksi);
-  if (dataSiswa) setSiswa(dataSiswa);
-  if (dataPengaturan) setProfilKelas(dataPengaturan);
-};
+    if (dataTransaksi) setTransaksi(dataTransaksi);
+    if (dataSiswa) setSiswa(dataSiswa);
+    if (dataPengaturan) setProfilKelas(dataPengaturan);
+  };
+
   useEffect(() => {
     const checkUserAndFetch = async () => {
-      // 1. Cek Login
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
         return;
       }
 
-      // 2. Satpam Cek Siswa
       const { data: dataSiswa } = await supabase
         .from("siswa")
         .select("id")
         .eq("email", session.user.email)
         .maybeSingle();
 
-      // Kalau dia siswa, tendang! Dan hentikan proses (jangan ambil data)
       if (dataSiswa) {
         router.push("/siswa");
-        return; 
+        return;
       }
 
-      // 3. Kalau lolos satpam (berarti Admin), baru ambil data
       await fetchData();
     };
-    
+
     checkUserAndFetch();
   }, [router]);
 
   const handleTambah = async () => {
     if (!keterangan || !jumlah) return toast.error("Isi semua data!");
-    const { error } = await supabase.from("transaksi").insert([{ 
-      keterangan, 
-      jumlah: parseInt(jumlah), 
+    const { error } = await supabase.from("transaksi").insert([{
+      keterangan,
+      jumlah: parseInt(jumlah),
       tipe,
-      periode: periodeAktif 
+      periode: periodeAktif
     }]);
     if (error) toast.error("Gagal menyimpan data");
     else { setKeterangan(""); setJumlah(""); setTipe("masuk"); fetchData(); toast.success("Transaksi berhasil disimpan"); }
@@ -108,12 +99,12 @@ const fetchData = async () => {
     const sudahBayar = transaksi.some(t => t.periode === periodeAktif && t.siswa_id === id);
     if (sudahBayar) return toast.info("Siswa ini sudah lunas untuk periode ini.");
 
-    const { error } = await supabase.from("transaksi").insert([{ 
-      keterangan: `Kas ${periodeAktif} - ${nama}`, 
-      jumlah: parseInt(nominalKas), 
+    const { error } = await supabase.from("transaksi").insert([{
+      keterangan: `Kas ${periodeAktif} - ${nama}`,
+      jumlah: parseInt(nominalKas),
       tipe: "masuk",
       periode: periodeAktif,
-      siswa_id: id 
+      siswa_id: id
     }]);
     if (!error) {
       fetchData();
@@ -121,27 +112,24 @@ const fetchData = async () => {
     }
   };
 
-    const handleTagihWA = () => {
-    // 1. Cari siswa yang belum bayar di periode ini
+  const handleTagihWA = () => {
     const belumBayar = siswa.filter(s => !transaksiPeriodeIni.some(t => t.siswa_id === s.id));
 
     if (belumBayar.length === 0) {
       return toast.success("Semua siswa sudah lunas! Tidak ada yang perlu ditagih.");
     }
 
-    // 2. Susun teks pesan WhatsApp
     let pesan = `*TAGIHAN KAS ${periodeAktif.toUpperCase()}*\n`;
     pesan += `Kelas: ${profilKelas.nama_kelas}\n\n`;
     pesan += `Halo teman-teman, bagi yang belum membayar kas ${periodeAktif}, mohon segera diselesaikan ya. Terima kasih! 🙏\n\n`;
     pesan += `*Daftar yang belum bayar:*\n`;
-    
+
     belumBayar.forEach((s, index) => {
       pesan += `${index + 1}. ${s.nama}\n`;
     });
-    
+
     pesan += `\nTotal: ${belumBayar.length} orang.`;
 
-    // 3. Copy ke Clipboard
     navigator.clipboard.writeText(pesan).then(() => {
       toast.success("Teks tagihan berhasil dicopy! Silakan paste di grup WhatsApp.");
     }).catch(() => {
@@ -167,23 +155,21 @@ const fetchData = async () => {
   };
 
   const transaksiPeriodeIni = transaksi.filter(t => t.periode === periodeAktif);
-  
   const totalMasuk = transaksiPeriodeIni.filter(t => t.tipe === "masuk").reduce((acc, curr) => acc + curr.jumlah, 0);
   const totalKeluar = transaksiPeriodeIni.filter(t => t.tipe === "keluar").reduce((acc, curr) => acc + curr.jumlah, 0);
   const totalSaldo = totalMasuk - totalKeluar;
-  
   const totalSiswa = siswa.length;
   const siswaLunas = siswa.filter(s => transaksiPeriodeIni.some(t => t.siswa_id === s.id)).length;
   const siswaBelum = totalSiswa - siswaLunas;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900 p-4 md:p-8 transition-colors duration-500">
-      
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/30 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-400/30 rounded-full blur-[120px] pointer-events-none"></div>
+    <main className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-black p-4 md:p-8 transition-colors duration-500">
+
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/30 dark:bg-blue-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[5000ms]"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 dark:bg-purple-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[7000ms]"></div>
+      <div className="absolute top-[30%] right-[20%] w-[30%] h-[30%] bg-cyan-400/20 dark:bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
@@ -192,12 +178,12 @@ const fetchData = async () => {
               Dashboard Kas
             </h1>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 bg-white/50 dark:bg-black/40 px-3 py-1.5 rounded-xl border border-white/50 dark:border-white/10">
               <CalendarDays className="w-5 h-5 text-blue-500" />
               <Select value={periodeAktif} onValueChange={(val) => setPeriodeAktif(val || "Minggu 1")}>
-                <SelectTrigger className="border-0 bg-transparent h-8 focus:ring-0 font-bold text-blue-700 dark:text-blue-400 w-120px">
+                <SelectTrigger className="border-0 bg-transparent h-8 focus:ring-0 font-bold text-blue-700 dark:text-blue-400 w-[120px]">
                   <SelectValue placeholder="Pilih Periode" />
                 </SelectTrigger>
                 <SelectContent>
@@ -223,7 +209,7 @@ const fetchData = async () => {
             <Button onClick={handleTagihWA} className="bg-[#25D366] hover:bg-[#1ebe57] text-white rounded-xl shadow-lg shadow-green-500/30 flex gap-2">
               <MessageCircle className="w-4 h-4" /> Tagih WA
             </Button>
-            
+
             <Button onClick={exportExcel} className="bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 flex gap-2">
               <FileSpreadsheet className="w-4 h-4" /> Excel
             </Button>
@@ -235,8 +221,8 @@ const fetchData = async () => {
 
         {/* KARTU STATISTIK */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl overflow-hidden relative">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}>
+            <Card className={glassCardClass}>
               <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-purple-500/10 pointer-events-none"></div>
               <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between mb-2">
@@ -248,8 +234,8 @@ const fetchData = async () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}>
+            <Card className={glassCardClass}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Total Siswa</p>
@@ -260,8 +246,8 @@ const fetchData = async () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}>
+            <Card className={glassCardClass}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Lunas ({periodeAktif})</p>
@@ -272,8 +258,8 @@ const fetchData = async () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}>
+            <Card className={glassCardClass}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Belum Bayar</p>
@@ -287,20 +273,20 @@ const fetchData = async () => {
 
         {/* BARIS 2: GRAFIK & FORM INPUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="lg:col-span-1">
-            <Card className="h-full border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }} className="lg:col-span-1">
+            <Card className={glassCardClass}>
               <CardHeader><CardTitle className="text-slate-800 dark:text-white">Arus Kas ({periodeAktif})</CardTitle></CardHeader>
               <CardContent><ChartKas masuk={totalMasuk} keluar={totalKeluar} /></CardContent>
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="lg:col-span-2">
-            <Card className="h-full border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }} className="lg:col-span-2">
+            <Card className={glassCardClass}>
               <CardHeader><CardTitle className="text-slate-800 dark:text-white">Catat Transaksi Baru (Otomatis masuk ke {periodeAktif})</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input placeholder="Keterangan (cth: Beli Spidol)" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className="bg-white/60 dark:bg-black/40 border-white/50 dark:border-white/10 rounded-xl h-12 md:col-span-2" />
+                <Input placeholder="Keterangan (cth: Beli Spidol)" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className="bg-white/20 dark:bg-black/20 border-white/30 dark:border-white/10 rounded-xl h-12 md:col-span-2 shadow-inner focus:bg-white/50 dark:focus:bg-black/40 backdrop-blur-md transition-all" />
                 <Select value={tipe} onValueChange={(val) => setTipe(val || "masuk")}>
-                  <SelectTrigger className="bg-white/60 dark:bg-black/40 border-white/50 dark:border-white/10 rounded-xl h-12">
+                  <SelectTrigger className="bg-white/20 dark:bg-black/20 border-white/30 dark:border-white/10 rounded-xl h-12 shadow-inner focus:bg-white/50 dark:focus:bg-black/40 backdrop-blur-md transition-all">
                     <SelectValue placeholder="Pilih Tipe" />
                   </SelectTrigger>
                   <SelectContent>
@@ -308,8 +294,8 @@ const fetchData = async () => {
                     <SelectItem value="keluar">Pengeluaran</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input type="number" placeholder="Jumlah (Rp)" value={jumlah} onChange={(e) => setJumlah(e.target.value)} className="bg-white/60 dark:bg-black/40 border-white/50 dark:border-white/10 rounded-xl h-12 md:col-span-3" />
-                <Button onClick={handleTambah} className="w-full md:col-span-3 flex gap-2 bg-linear-to-r from-blue-500 via-cyan-500 to-blue-500 hover:from-blue-600 hover:via-cyan-600 hover:to-blue-600 text-white rounded-xl py-6 font-bold shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.01]">
+                <Input type="number" placeholder="Jumlah (Rp)" value={jumlah} onChange={(e) => setJumlah(e.target.value)} className="bg-white/20 dark:bg-black/20 border-white/30 dark:border-white/10 rounded-xl h-12 md:col-span-3 shadow-inner focus:bg-white/50 dark:focus:bg-black/40 backdrop-blur-md transition-all" />
+                <Button onClick={handleTambah} className="w-full md:col-span-3 flex gap-2 bg-linear-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-xl py-6 font-bold shadow-[0_0_20px_rgba(59,130,246,0.4)] shadow-inner border border-blue-400/50 transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)]">
                   <Plus className="w-5 h-5" /> Simpan Transaksi
                 </Button>
               </CardContent>
@@ -319,10 +305,10 @@ const fetchData = async () => {
 
         {/* BARIS 3: RIWAYAT & SISWA */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-            <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}>
+            <Card className={glassCardClass}>
               <CardHeader><CardTitle className="text-slate-800 dark:text-white">Riwayat Transaksi ({periodeAktif})</CardTitle></CardHeader>
-              <CardContent className="max-h-500px overflow-y-auto pr-2">
+              <CardContent className="max-h-[500px] overflow-y-auto pr-2">
                 {transaksiPeriodeIni.length === 0 ? <p className="text-slate-500">Belum ada data di periode ini.</p> : transaksiPeriodeIni.map((t) => (
                   <div key={t.id} className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/50 py-4">
                     <div>
@@ -343,44 +329,43 @@ const fetchData = async () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-            <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}>
+            <Card className={glassCardClass}>
               <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <CardTitle className="text-slate-800 dark:text-white">Status {periodeAktif}</CardTitle>
                 <div className="flex gap-2">
-                  <Input type="number" value={nominalKas} onChange={(e) => setNominalKas(e.target.value)} className="w-24 h-9 bg-white/60 dark:bg-black/40 text-sm" placeholder="Nominal" />
+                  <Input type="number" value={nominalKas} onChange={(e) => setNominalKas(e.target.value)} className="w-24 h-9 bg-white/20 dark:bg-black/20 shadow-inner text-sm" placeholder="Nominal" />
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <Input placeholder="Cari..." value={searchSiswa} onChange={(e) => setSearchSiswa(e.target.value)} className="pl-9 h-9 bg-white/60 dark:bg-black/40 text-sm w-32" />
+                    <Input placeholder="Cari..." value={searchSiswa} onChange={(e) => setSearchSiswa(e.target.value)} className="pl-9 h-9 bg-white/20 dark:bg-black/20 shadow-inner text-sm w-32" />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="max-h-500px overflow-y-auto pr-2"> 
+              <CardContent className="max-h-[500px] overflow-y-auto pr-2">
                 {siswa
                   .filter(s => s.nama.toLowerCase().includes(searchSiswa.toLowerCase()))
                   .map((s) => {
-                  const isLunas = transaksiPeriodeIni.some(t => t.siswa_id === s.id);
-                  
-                  return (
-                    <div key={s.id} className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/50 py-3">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base">{s.nama}</span>
-                        {/* TOMBOL LIHAT RIWAYAT */}
-                        <button onClick={() => setSelectedSiswa(s)} className="text-[10px] text-blue-500 font-bold text-left hover:underline flex items-center gap-1 mt-1">
-                          <Eye className="w-3 h-3" /> Riwayat
-                        </button>
-                      </div>
+                    const isLunas = transaksiPeriodeIni.some(t => t.siswa_id === s.id);
 
-                      {isLunas ? (
-                        <span className="text-green-600 dark:text-green-400 font-bold text-xs bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20 whitespace-nowrap ml-2">LUNAS</span>
-                      ) : (
-                        <Button size="sm" onClick={() => handleBayar(s.id, s.nama)} className="bg-linear-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-200 text-white dark:text-black hover:opacity-90 rounded-full px-4 font-bold text-xs whitespace-nowrap ml-2">
-                          Bayar {parseInt(nominalKas || "0").toLocaleString("id-ID")}
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div key={s.id} className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/50 py-3">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base">{s.nama}</span>
+                          <button onClick={() => setSelectedSiswa(s)} className="text-[10px] text-blue-500 font-bold text-left hover:underline flex items-center gap-1 mt-1">
+                            <Eye className="w-3 h-3" /> Riwayat
+                          </button>
+                        </div>
+
+                        {isLunas ? (
+                          <span className="text-green-600 dark:text-green-400 font-bold text-xs bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20 whitespace-nowrap ml-2">LUNAS</span>
+                        ) : (
+                          <Button size="sm" onClick={() => handleBayar(s.id, s.nama)} className="bg-linear-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-200 text-white dark:text-black hover:opacity-90 rounded-full px-4 font-bold text-xs whitespace-nowrap ml-2">
+                            Bayar {parseInt(nominalKas || "0").toLocaleString("id-ID")}
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
               </CardContent>
             </Card>
           </motion.div>
@@ -398,7 +383,7 @@ const fetchData = async () => {
               Berikut adalah daftar periode kas yang sudah dibayar oleh siswa ini.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 space-y-2 max-h-300px overflow-y-auto pr-2">
+          <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-2">
             {transaksi.filter(t => t.siswa_id === selectedSiswa?.id).length === 0 ? (
               <p className="text-center text-red-500 font-bold py-4">Belum ada riwayat pembayaran.</p>
             ) : (

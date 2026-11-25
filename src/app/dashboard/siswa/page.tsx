@@ -17,19 +17,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Sama dengan kartu di dashboard
+const glassCardClass =
+  "border border-white/10 bg-[#1a1a1a]/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden relative before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/10 before:pointer-events-none before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]";
+
+const inputClass =
+  "bg-black/20 border-white/10 text-white placeholder:text-slate-500 rounded-xl h-12 shadow-inner focus-visible:ring-1 focus-visible:ring-blue-500/50";
+
 export default function KelolaSiswa() {
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [namaBaru, setNamaBaru] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) router.push("/login");
-    };
-    checkUser();
-  }, [router]);
 
   const fetchSiswa = async () => {
     const { data } = await supabase.from("siswa").select("*").order("nama");
@@ -55,14 +54,13 @@ export default function KelolaSiswa() {
       // Kalau dia siswa, tendang ke /siswa
       if (dataSiswa) {
         router.push("/siswa");
-        return; 
+        return;
       }
 
       // 3. Kalau lolos (Admin), ambil data siswa
-      const { data } = await supabase.from("siswa").select("*").order("nama");
-      if (data) setSiswa(data);
+      await fetchSiswa();
     };
-    
+
     checkUserAndFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -72,7 +70,7 @@ export default function KelolaSiswa() {
     setLoading(true);
 
     const { error } = await supabase.from("siswa").insert([{ nama: namaBaru.toUpperCase(), status: "Belum" }]);
-    
+
     if (error) {
       toast.error("Gagal menambah siswa: " + error.message);
     } else {
@@ -95,36 +93,42 @@ export default function KelolaSiswa() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900 p-4 md:p-8 transition-colors duration-500">
-      
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/30 rounded-full blur-[120px] pointer-events-none"></div>
+    <main className="relative min-h-screen overflow-hidden bg-[#050505] p-4 md:p-8 transition-colors duration-500">
+      {/* ORNAMEN CAHAYA */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[5000ms]"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[7000ms]"></div>
 
       <div className="relative z-10 max-w-4xl mx-auto">
-        
         <div className="flex items-center gap-4 mb-8">
           <Link href="/dashboard">
-            <Button variant="outline" size="icon" className="rounded-full bg-white/50 dark:bg-black/50 border-white/20">
+            <Button variant="outline" size="icon" className="rounded-full bg-white/5 hover:bg-white/10 text-slate-300 border-white/10">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-500" />
-            <h1 className="text-3xl font-black text-slate-800 dark:text-white">Kelola Siswa</h1>
+            <Users className="w-8 h-8 text-blue-400" />
+            <h1 className="text-3xl font-bold text-white tracking-tight">Kelola Siswa</h1>
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl mb-8">
-            <CardHeader><CardTitle className="text-slate-800 dark:text-white">Tambah Siswa Baru</CardTitle></CardHeader>
-            <CardContent className="flex gap-4">
-              <Input 
-                placeholder="Nama Lengkap Siswa..." 
-                value={namaBaru} 
-                onChange={(e) => setNamaBaru(e.target.value)} 
-                className="bg-white/60 dark:bg-black/40 border-white/50 dark:border-white/10 rounded-xl h-12"
-                onKeyDown={(e) => e.key === 'Enter' && handleTambah()}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <Card className={glassCardClass}>
+            <CardHeader>
+              <CardTitle className="text-white text-lg font-semibold">Tambah Siswa Baru</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-4">
+              <Input
+                placeholder="Nama Lengkap Siswa..."
+                value={namaBaru}
+                onChange={(e) => setNamaBaru(e.target.value)}
+                className={inputClass}
+                onKeyDown={(e) => e.key === "Enter" && handleTambah()}
               />
-              <Button onClick={handleTambah} disabled={loading} className="bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl px-8 h-12 font-bold shadow-lg shadow-blue-500/30">
+              <Button
+                onClick={handleTambah}
+                disabled={loading}
+                className="bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-xl px-8 h-12 font-bold shadow-[0_0_20px_rgba(59,130,246,0.3)] border border-blue-400/50 transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]"
+              >
                 <Plus className="w-5 h-5 mr-2" /> {loading ? "Menyimpan..." : "Tambah"}
               </Button>
             </CardContent>
@@ -132,17 +136,24 @@ export default function KelolaSiswa() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-2xl shadow-xl rounded-3xl">
-            <CardHeader><CardTitle className="text-slate-800 dark:text-white">Daftar Siswa ({siswa.length})</CardTitle></CardHeader>
-            <CardContent className="max-h-500px overflow-y-auto pr-2">
+          <Card className={glassCardClass}>
+            <CardHeader>
+              <CardTitle className="text-white text-lg font-semibold">Daftar Siswa ({siswa.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-[500px] overflow-y-auto pr-2">
               {siswa.length === 0 ? (
                 <p className="text-slate-500 text-center py-10">Belum ada data siswa.</p>
               ) : (
                 siswa.map((s) => (
-                  <div key={s.id} className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/50 py-3">
-                    <span className="font-bold text-slate-700 dark:text-slate-200">{s.nama}</span>
-                    <Button variant="ghost" size="icon" onClick={() => handleHapus(s.id, s.nama)} className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
-                      <Trash2 className="w-5 h-5" />
+                  <div key={s.id} className="flex justify-between items-center border-b border-white/5 py-3">
+                    <span className="font-semibold text-slate-200">{s.nama}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleHapus(s.id, s.nama)}
+                      className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 h-8 w-8"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))

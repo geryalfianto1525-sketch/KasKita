@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Wallet, Plus, Sparkles, Trash2, Search, Users, CheckCircle2, XCircle, FileSpreadsheet, FileText, CalendarDays, Eye, Settings, MessageCircle } from "lucide-react";
+import { Wallet, Plus, Trash2, Search, Users, CheckCircle2, XCircle, FileSpreadsheet, FileText, CalendarDays, Eye, Settings, MessageCircle } from "lucide-react";
 import ChartKas from "@/components/ChartKas";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -24,7 +24,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const glassCardClass = "border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden relative before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/50 dark:before:border-white/10 before:pointer-events-none before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]";
+// LIQUID GLASS GELAP (Warna kaca transparan redup 40%)
+const glassCardClass = "border border-white/10 bg-[#1a1a1a]/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden relative before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/10 before:pointer-events-none before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]";
 
 export default function Home() {
   const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
@@ -78,10 +79,7 @@ export default function Home() {
   const handleTambah = async () => {
     if (!keterangan || !jumlah) return toast.error("Isi semua data!");
     const { error } = await supabase.from("transaksi").insert([{
-      keterangan,
-      jumlah: parseInt(jumlah),
-      tipe,
-      periode: periodeAktif
+      keterangan, jumlah: parseInt(jumlah), tipe, periode: periodeAktif
     }]);
     if (error) toast.error("Gagal menyimpan data");
     else { setKeterangan(""); setJumlah(""); setTipe("masuk"); fetchData(); toast.success("Transaksi berhasil disimpan"); }
@@ -100,41 +98,20 @@ export default function Home() {
     if (sudahBayar) return toast.info("Siswa ini sudah lunas untuk periode ini.");
 
     const { error } = await supabase.from("transaksi").insert([{
-      keterangan: `Kas ${periodeAktif} - ${nama}`,
-      jumlah: parseInt(nominalKas),
-      tipe: "masuk",
-      periode: periodeAktif,
-      siswa_id: id
+      keterangan: `Kas ${periodeAktif} - ${nama}`, jumlah: parseInt(nominalKas), tipe: "masuk", periode: periodeAktif, siswa_id: id
     }]);
-    if (!error) {
-      fetchData();
-      toast.success(`${nama} berhasil dibayar`);
-    }
+    if (!error) { fetchData(); toast.success(`${nama} berhasil dibayar`); }
   };
 
   const handleTagihWA = () => {
     const belumBayar = siswa.filter(s => !transaksiPeriodeIni.some(t => t.siswa_id === s.id));
+    if (belumBayar.length === 0) return toast.success("Semua siswa sudah lunas!");
 
-    if (belumBayar.length === 0) {
-      return toast.success("Semua siswa sudah lunas! Tidak ada yang perlu ditagih.");
-    }
-
-    let pesan = `*TAGIHAN KAS ${periodeAktif.toUpperCase()}*\n`;
-    pesan += `Kelas: ${profilKelas.nama_kelas}\n\n`;
-    pesan += `Halo teman-teman, bagi yang belum membayar kas ${periodeAktif}, mohon segera diselesaikan ya. Terima kasih! 🙏\n\n`;
-    pesan += `*Daftar yang belum bayar:*\n`;
-
-    belumBayar.forEach((s, index) => {
-      pesan += `${index + 1}. ${s.nama}\n`;
-    });
-
+    let pesan = `*TAGIHAN KAS ${periodeAktif.toUpperCase()}*\nKelas: ${profilKelas.nama_kelas}\n\nHalo teman-teman, bagi yang belum membayar kas ${periodeAktif}, mohon segera diselesaikan ya. Terima kasih! 🙏\n\n*Daftar yang belum bayar:*\n`;
+    belumBayar.forEach((s, index) => { pesan += `${index + 1}. ${s.nama}\n`; });
     pesan += `\nTotal: ${belumBayar.length} orang.`;
 
-    navigator.clipboard.writeText(pesan).then(() => {
-      toast.success("Teks tagihan berhasil dicopy! Silakan paste di grup WhatsApp.");
-    }).catch(() => {
-      toast.error("Gagal menyalin teks.");
-    });
+    navigator.clipboard.writeText(pesan).then(() => { toast.success("Teks tagihan dicopy!"); }).catch(() => { toast.error("Gagal menyalin."); });
   };
 
   const exportExcel = () => {
@@ -163,30 +140,31 @@ export default function Home() {
   const siswaBelum = totalSiswa - siswaLunas;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-50 via-cyan-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-black p-4 md:p-8 transition-colors duration-500">
+    <main className="relative min-h-screen overflow-hidden bg-[#050505] p-4 md:p-8 transition-colors duration-500">
 
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/30 dark:bg-blue-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[5000ms]"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 dark:bg-purple-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[7000ms]"></div>
-      <div className="absolute top-[30%] right-[20%] w-[30%] h-[30%] bg-cyan-400/20 dark:bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+      {/* ORNAMEN CAHAYA LEBIH HIDUP (Glow 40%) */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[5000ms]"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[7000ms]"></div>
+      <div className="absolute top-[30%] right-[20%] w-[30%] h-[30%] bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
+
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-blue-500 animate-pulse" />
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-cyan-500 to-purple-600 dark:from-blue-400 dark:via-cyan-300 dark:to-purple-400">
-              Dashboard Kas
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+              Dashboard Kas.
             </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-white/50 dark:bg-black/40 px-3 py-1.5 rounded-xl border border-white/50 dark:border-white/10">
-              <CalendarDays className="w-5 h-5 text-blue-500" />
+            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+              <CalendarDays className="w-4 h-4 text-slate-400" />
               <Select value={periodeAktif} onValueChange={(val) => setPeriodeAktif(val || "Minggu 1")}>
-                <SelectTrigger className="border-0 bg-transparent h-8 focus:ring-0 font-bold text-blue-700 dark:text-blue-400 w-[120px]">
+                <SelectTrigger className="border-0 bg-transparent h-8 focus:ring-0 font-medium text-white w-[120px]">
                   <SelectValue placeholder="Pilih Periode" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
                   {listPeriode.map((p) => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -195,77 +173,77 @@ export default function Home() {
             </div>
 
             <Link href="/dashboard/siswa">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/30 flex gap-2">
+              <Button className="bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg flex gap-2 text-xs font-semibold h-10 border border-blue-500/50">
                 <Users className="w-4 h-4" /> Kelola Siswa
               </Button>
             </Link>
 
             <Link href="/dashboard/pengaturan">
-              <Button className="bg-slate-600 hover:bg-slate-700 text-white rounded-xl shadow-lg shadow-slate-500/30 flex gap-2">
+              <Button className="bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg flex gap-2 text-xs font-semibold h-10 border border-white/10">
                 <Settings className="w-4 h-4" /> Pengaturan
               </Button>
             </Link>
 
-            <Button onClick={handleTagihWA} className="bg-[#25D366] hover:bg-[#1ebe57] text-white rounded-xl shadow-lg shadow-green-500/30 flex gap-2">
+            <Button onClick={handleTagihWA} className="bg-emerald-600/80 hover:bg-emerald-600 text-white rounded-lg flex gap-2 text-xs font-semibold h-10 border border-emerald-500/50">
               <MessageCircle className="w-4 h-4" /> Tagih WA
             </Button>
 
-            <Button onClick={exportExcel} className="bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/30 flex gap-2">
+            <Button onClick={exportExcel} className="bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg flex gap-2 text-xs font-semibold h-10 border border-white/10">
               <FileSpreadsheet className="w-4 h-4" /> Excel
             </Button>
-            <Button onClick={exportPDF} className="bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-lg shadow-red-500/30 flex gap-2">
+            <Button onClick={exportPDF} className="bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg flex gap-2 text-xs font-semibold h-10 border border-white/10">
               <FileText className="w-4 h-4" /> PDF
             </Button>
           </div>
         </div>
 
         {/* KARTU STATISTIK */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <motion.div key={`saldo-${periodeAktif}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, ease: "easeOut" }}>
             <Card className={glassCardClass}>
-              <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-purple-500/10 pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 pointer-events-none"></div>
               <CardContent className="p-6 relative z-10">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Saldo ({periodeAktif})</p>
-                  <Wallet className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Saldo ({periodeAktif})</p>
+                  <Wallet className="h-5 w-5 text-blue-400" />
                 </div>
-                <p className="text-3xl font-black text-slate-800 dark:text-white">Rp {totalSaldo.toLocaleString("id-ID")}</p>
+                <p className="text-3xl font-bold text-white">Rp {totalSaldo.toLocaleString("id-ID")}</p>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}>
+          <motion.div key={`siswa-${periodeAktif}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}>
             <Card className={glassCardClass}>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Total Siswa</p>
-                  <Users className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Siswa</p>
+                  <Users className="h-5 w-5 text-cyan-400" />
                 </div>
-                <p className="text-3xl font-black text-slate-800 dark:text-white">{totalSiswa} <span className="text-sm font-medium text-slate-500">Orang</span></p>
+                <p className="text-3xl font-bold text-white">{totalSiswa} <span className="text-sm font-medium text-slate-400">Orang</span></p>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}>
+          <motion.div key={`lunas-${periodeAktif}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}>
             <Card className={glassCardClass}>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Lunas ({periodeAktif})</p>
-                  <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lunas ({periodeAktif})</p>
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                 </div>
-                <p className="text-3xl font-black text-green-600 dark:text-green-400">{siswaLunas} <span className="text-sm font-medium text-slate-500">Orang</span></p>
+                <p className="text-3xl font-bold text-white">{siswaLunas} <span className="text-sm font-medium text-slate-400">Orang</span></p>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}>
+          <motion.div key={`belum-${periodeAktif}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}>
             <Card className={glassCardClass}>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase">Belum Bayar</p>
-                  <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Belum Bayar</p>
+                  <XCircle className="h-5 w-5 text-red-400" />
                 </div>
-                <p className="text-3xl font-black text-red-600 dark:text-red-400">{siswaBelum} <span className="text-sm font-medium text-slate-500">Orang</span></p>
+                <p className="text-3xl font-bold text-white">{siswaBelum} <span className="text-sm font-medium text-slate-400">Orang</span></p>
               </CardContent>
             </Card>
           </motion.div>
@@ -273,29 +251,43 @@ export default function Home() {
 
         {/* BARIS 2: GRAFIK & FORM INPUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }} className="lg:col-span-1">
+          {/* GRAFIK */}
+          <motion.div
+            key={`grafik-${periodeAktif}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="lg:col-span-1"
+          >
             <Card className={glassCardClass}>
-              <CardHeader><CardTitle className="text-slate-800 dark:text-white">Arus Kas ({periodeAktif})</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-white text-lg font-semibold">Arus Kas ({periodeAktif})</CardTitle></CardHeader>
               <CardContent><ChartKas masuk={totalMasuk} keluar={totalKeluar} /></CardContent>
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }} className="lg:col-span-2">
+          {/* FORM INPUT */}
+          <motion.div
+            key={`form-${periodeAktif}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="lg:col-span-2"
+          >
             <Card className={glassCardClass}>
-              <CardHeader><CardTitle className="text-slate-800 dark:text-white">Catat Transaksi Baru (Otomatis masuk ke {periodeAktif})</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-white text-lg font-semibold">Catat Transaksi Baru (Otomatis masuk ke {periodeAktif})</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input placeholder="Keterangan (cth: Beli Spidol)" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className="bg-white/20 dark:bg-black/20 border-white/30 dark:border-white/10 rounded-xl h-12 md:col-span-2 shadow-inner focus:bg-white/50 dark:focus:bg-black/40 backdrop-blur-md transition-all" />
+                <Input placeholder="Keterangan (cth: Beli Spidol)" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className="bg-black/20 border-white/10 text-white placeholder:text-slate-500 rounded-xl h-12 md:col-span-2 shadow-inner focus-visible:ring-1 focus-visible:ring-blue-500/50" />
                 <Select value={tipe} onValueChange={(val) => setTipe(val || "masuk")}>
-                  <SelectTrigger className="bg-white/20 dark:bg-black/20 border-white/30 dark:border-white/10 rounded-xl h-12 shadow-inner focus:bg-white/50 dark:focus:bg-black/40 backdrop-blur-md transition-all">
+                  <SelectTrigger className="bg-black/20 border-white/10 text-white rounded-xl h-12 shadow-inner">
                     <SelectValue placeholder="Pilih Tipe" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
                     <SelectItem value="masuk">Pemasukan</SelectItem>
                     <SelectItem value="keluar">Pengeluaran</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input type="number" placeholder="Jumlah (Rp)" value={jumlah} onChange={(e) => setJumlah(e.target.value)} className="bg-white/20 dark:bg-black/20 border-white/30 dark:border-white/10 rounded-xl h-12 md:col-span-3 shadow-inner focus:bg-white/50 dark:focus:bg-black/40 backdrop-blur-md transition-all" />
-                <Button onClick={handleTambah} className="w-full md:col-span-3 flex gap-2 bg-linear-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-xl py-6 font-bold shadow-[0_0_20px_rgba(59,130,246,0.4)] shadow-inner border border-blue-400/50 transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)]">
+                <Input type="number" placeholder="Jumlah (Rp)" value={jumlah} onChange={(e) => setJumlah(e.target.value)} className="bg-black/20 border-white/10 text-white placeholder:text-slate-500 rounded-xl h-12 md:col-span-3 shadow-inner focus-visible:ring-1 focus-visible:ring-blue-500/50" />
+                <Button onClick={handleTambah} className="w-full md:col-span-3 flex gap-2 bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-xl py-6 font-bold shadow-[0_0_20px_rgba(59,130,246,0.3)] shadow-inner border border-blue-400/50 transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]">
                   <Plus className="w-5 h-5" /> Simpan Transaksi
                 </Button>
               </CardContent>
@@ -305,21 +297,27 @@ export default function Home() {
 
         {/* BARIS 3: RIWAYAT & SISWA */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}>
+          {/* RIWAYAT */}
+          <motion.div
+            key={`riwayat-${periodeAktif}`}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          >
             <Card className={glassCardClass}>
-              <CardHeader><CardTitle className="text-slate-800 dark:text-white">Riwayat Transaksi ({periodeAktif})</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-white text-lg font-semibold">Riwayat Transaksi ({periodeAktif})</CardTitle></CardHeader>
               <CardContent className="max-h-[500px] overflow-y-auto pr-2">
                 {transaksiPeriodeIni.length === 0 ? <p className="text-slate-500">Belum ada data di periode ini.</p> : transaksiPeriodeIni.map((t) => (
-                  <div key={t.id} className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/50 py-4">
+                  <div key={t.id} className="flex justify-between items-center border-b border-white/5 py-4">
                     <div>
-                      <span className="font-bold text-slate-700 dark:text-slate-200">{t.keterangan}</span>
-                      <p className="text-xs font-medium text-slate-500 capitalize">{t.tipe}</p>
+                      <span className="font-semibold text-slate-200">{t.keterangan}</span>
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">{t.tipe}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`font-black ${t.tipe === 'masuk' ? 'text-green-500' : 'text-red-500'}`}>
+                      <span className={`font-bold ${t.tipe === 'masuk' ? 'text-emerald-500' : 'text-red-500'}`}>
                         {t.tipe === 'masuk' ? '+' : '-'} Rp {t.jumlah.toLocaleString("id-ID")}
                       </span>
-                      <Button variant="ghost" size="icon" onClick={() => handleHapus(t.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 h-8 w-8">
+                      <Button variant="ghost" size="icon" onClick={() => handleHapus(t.id)} className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 h-8 w-8">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -329,15 +327,21 @@ export default function Home() {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}>
+          {/* STATUS SISWA */}
+          <motion.div
+            key={`siswa-${periodeAktif}`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+          >
             <Card className={glassCardClass}>
               <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <CardTitle className="text-slate-800 dark:text-white">Status {periodeAktif}</CardTitle>
+                <CardTitle className="text-white text-lg font-semibold">Status {periodeAktif}</CardTitle>
                 <div className="flex gap-2">
-                  <Input type="number" value={nominalKas} onChange={(e) => setNominalKas(e.target.value)} className="w-24 h-9 bg-white/20 dark:bg-black/20 shadow-inner text-sm" placeholder="Nominal" />
+                  <Input type="number" value={nominalKas} onChange={(e) => setNominalKas(e.target.value)} className="w-24 h-9 bg-black/20 border-white/10 text-white text-sm focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner" placeholder="Nominal" />
                   <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <Input placeholder="Cari..." value={searchSiswa} onChange={(e) => setSearchSiswa(e.target.value)} className="pl-9 h-9 bg-white/20 dark:bg-black/20 shadow-inner text-sm w-32" />
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                    <Input placeholder="Cari..." value={searchSiswa} onChange={(e) => setSearchSiswa(e.target.value)} className="pl-9 h-9 bg-black/20 border-white/10 text-white text-sm w-32 focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner" />
                   </div>
                 </div>
               </CardHeader>
@@ -348,18 +352,18 @@ export default function Home() {
                     const isLunas = transaksiPeriodeIni.some(t => t.siswa_id === s.id);
 
                     return (
-                      <div key={s.id} className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/50 py-3">
+                      <div key={s.id} className="flex justify-between items-center border-b border-white/5 py-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base">{s.nama}</span>
-                          <button onClick={() => setSelectedSiswa(s)} className="text-[10px] text-blue-500 font-bold text-left hover:underline flex items-center gap-1 mt-1">
+                          <span className="font-semibold text-slate-200 text-sm md:text-base">{s.nama}</span>
+                          <button onClick={() => setSelectedSiswa(s)} className="text-[10px] text-blue-400 font-bold text-left hover:underline flex items-center gap-1 mt-1">
                             <Eye className="w-3 h-3" /> Riwayat
                           </button>
                         </div>
 
                         {isLunas ? (
-                          <span className="text-green-600 dark:text-green-400 font-bold text-xs bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20 whitespace-nowrap ml-2">LUNAS</span>
+                          <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 whitespace-nowrap ml-2">LUNAS</span>
                         ) : (
-                          <Button size="sm" onClick={() => handleBayar(s.id, s.nama)} className="bg-linear-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-200 text-white dark:text-black hover:opacity-90 rounded-full px-4 font-bold text-xs whitespace-nowrap ml-2">
+                          <Button size="sm" onClick={() => handleBayar(s.id, s.nama)} className="bg-white/10 hover:bg-white/20 text-white rounded-full px-4 font-semibold text-xs whitespace-nowrap ml-2 border border-white/10">
                             Bayar {parseInt(nominalKas || "0").toLocaleString("id-ID")}
                           </Button>
                         )}
@@ -370,35 +374,35 @@ export default function Home() {
             </Card>
           </motion.div>
         </div>
-      </div>
 
-      {/* MODAL (DIALOG) RIWAYAT SISWA */}
-      <Dialog open={!!selectedSiswa} onOpenChange={(open) => !open && setSelectedSiswa(null)}>
-        <DialogContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-white/50 dark:border-slate-800 rounded-3xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-slate-800 dark:text-white">
-              Riwayat Kas: {selectedSiswa?.nama}
-            </DialogTitle>
-            <DialogDescription className="text-slate-500 font-medium">
-              Berikut adalah daftar periode kas yang sudah dibayar oleh siswa ini.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-2">
-            {transaksi.filter(t => t.siswa_id === selectedSiswa?.id).length === 0 ? (
-              <p className="text-center text-red-500 font-bold py-4">Belum ada riwayat pembayaran.</p>
-            ) : (
-              transaksi.filter(t => t.siswa_id === selectedSiswa?.id).map((t) => (
-                <div key={t.id} className="flex justify-between items-center bg-green-50 dark:bg-green-950/30 p-3 rounded-xl border border-green-200 dark:border-green-900">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" /> {t.periode}
-                  </span>
-                  <span className="font-black text-green-600 dark:text-green-400">Rp {t.jumlah.toLocaleString("id-ID")}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+        {/* MODAL (DIALOG) RIWAYAT SISWA */}
+        <Dialog open={!!selectedSiswa} onOpenChange={(open) => !open && setSelectedSiswa(null)}>
+          <DialogContent className="bg-[#1a1a1a]/90 backdrop-blur-xl border-white/10 text-white rounded-3xl max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">
+                Riwayat Kas: <span className="text-blue-400">{selectedSiswa?.nama}</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-400 text-sm">
+                Daftar periode kas yang sudah dibayar oleh siswa ini.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto pr-2">
+              {transaksi.filter(t => t.siswa_id === selectedSiswa?.id).length === 0 ? (
+                <p className="text-center text-slate-500 font-bold py-4">Belum ada riwayat pembayaran.</p>
+              ) : (
+                transaksi.filter(t => t.siswa_id === selectedSiswa?.id).map((t) => (
+                  <div key={t.id} className="flex justify-between items-center bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+                    <span className="font-semibold text-slate-300 flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {t.periode}
+                    </span>
+                    <span className="font-bold text-emerald-400 text-sm">Rp {t.jumlah.toLocaleString("id-ID")}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </main>
   );
 }
